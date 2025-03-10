@@ -1,14 +1,15 @@
+// tailwind.config.js
 module.exports = {
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
+    './pages/**/*.{js,jsx,ts,tsx}',
+    './components/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
     extend: {
       colors: {
-        primary: '#2563eb', // blue-600
-        secondary: '#1d4ed8', // blue-700
-        background: '#f9fafb', // gray-50
+        background: '#f8f9fa', // or any light color
+        primary: '#ffdf00',    // e.g. a golden color
+        secondary: '#eebf00',  // or a slightly darker shade
       },
     },
   },
