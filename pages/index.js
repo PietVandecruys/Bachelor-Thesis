@@ -1,21 +1,32 @@
 // pages/index.js
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import Image from "next/image";
+
 
 export default function Home() {
   return (
     <Layout>
       {/* Hero / Intro Section */}
-      <section className="text-center py-16 bg-white shadow-sm rounded-lg">
-        <h2 className="text-5xl font-extrabold text-gray-900 mb-4">
-          Welcome to CFA Exam Prep
-        </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Prepare thoroughly for your CFA exam with our innovative, interactive platform.
-          Access up-to-date study materials, practice exams, and track your progress – all
-          in one place.
-        </p>
-      </section>
+      <section className="text-center py-16 bg-white">
+      <h2 className="text-5xl font-extrabold text-gray-900 mb-4">
+        Welcome to CFA Exam Prep
+      </h2>
+      <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+        Prepare thoroughly for your CFA exam with our innovative, interactive platform.
+        Access up-to-date study materials, practice exams, and track your progress – all
+        in one place.
+      </p>
+      <div className="flex justify-center">
+      <Image
+        src="/images/CFA-Exam-Prep.webp" // Corrected path
+        alt="CFA Exam Preparation"
+        width={600}
+        height={400}
+        className="rounded-lg shadow-lg"
+      />
+      </div>
+    </section>
 
       {/* Features / Why Us Section */}
       <section className="mt-16">

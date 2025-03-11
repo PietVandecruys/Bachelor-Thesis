@@ -32,8 +32,8 @@ function getModuleImage(name) {
     return '/images/statistics.jpg';
   } else if (name === 'Probability Concepts') {
     return '/images/probability.jpg';
-  } else if (name === 'Ethics and Trust') {
-    return '/images/ethics.jpg';
+  } else if (name === 'Protfolio Management') {
+    return '/images/pm.jpg';
   }
   return '/images/default.jpg';
 }
@@ -96,7 +96,7 @@ export default function PracticeIndex({ modules }) {
               <p className="text-gray-600 flex-grow">{description}</p>
               <button
                 onClick={() => handleStartTest(mod.module_name)}
-                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                className="mt-4 bg-gray-700 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
               >
                 Start Test
               </button>

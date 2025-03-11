@@ -20,7 +20,7 @@ export default function Layout({ children }) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white">
+      <footer className="bg-gray-700 text-white">
         <div className="container mx-auto px-4 py-4 text-center">
           © {new Date().getFullYear()} CFA Exam Prep. All rights reserved.
         </div>
