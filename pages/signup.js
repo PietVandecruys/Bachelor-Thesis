@@ -46,6 +46,8 @@ export default function Signup() {
     <Layout>
       <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
+        <p className="text-sm text-gray-600 mb-4">
+            It seems you were trying to log in, but don't have an account yet. Please fill in the details below to sign up and continue.        </p>
         <form onSubmit={handleSignup}>
           <input
             type="text"

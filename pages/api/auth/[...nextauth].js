@@ -1,17 +1,24 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
-import { createClient } from "@supabase/supabase-js";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { createClient } from "@supabase/supabase-js";
 
-// Supabase client
+// 🔐 Public Supabase client (anon key) — for signing in users
 const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL_USER,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_USER
 );
 
+// 🔐 Secure Supabase client (service role key) — for server-side lookups
+const supabaseServer = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL_USER,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default NextAuth({
   providers: [
+    // ✅ Email/Password login
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -19,37 +26,29 @@ export default NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          const { email, password } = credentials;
+        const { email, password } = credentials ?? {};
 
-          if (!email || !password) {
-            console.error("Missing email or password");
-            return null; // Return null to indicate authentication failure
-          }
+        if (!email || !password) return null;
 
-          console.log("Attempting to sign in with Supabase...");
+        const { data, error } = await supabaseAuth.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-          const { data, error } = await supabaseAuth.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          console.log("Supabase response:", { data, error });
-
-          if (error || !data.user) {
-            console.error("Error during sign-in:", error);
-            return null; // Return null to indicate authentication failure
-          }
-
-          console.log("User authenticated successfully:", data.user);
-
-          return { id: data.user.id, email: data.user.email, name: data.user.email };
-        } catch (err) {
-          console.error("Unexpected error in authorize function:", err);
-          return null; // Return null to indicate authentication failure
+        if (error || !data?.user) {
+          console.error("Supabase sign-in failed:", error);
+          throw new Error("Please sign up first");  // Custom error message
         }
+
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.email,
+        };
       },
     }),
+
+    // ✅ OAuth providers
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -59,34 +58,53 @@ export default NextAuth({
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
   ],
+
   pages: {
     signIn: "/signin",
+    error: "/signup",  // Redirect to the sign-up page on error
   },
+
   session: {
-    jwt: true,
+    strategy: "jwt",
   },
+
   callbacks: {
-    async jwt({ token, user, account }) {
+    async signIn({ user, account }) {
+      // Allow email/password sign-in
+      if (account?.provider === "credentials") return true;
+
+      // For Google/GitHub sign-in, check if user exists in Supabase `profiles`
+      const { data, error } = await supabaseServer
+        .from("profiles")
+        .select("id")
+        .eq("email", user?.email)
+        .single();
+
+      if (data) return true; // user exists, allow sign-in
+
+      console.warn("Blocked OAuth sign-in — user not found in Supabase:", user?.email);
+      
+      // Redirect to sign-up page
+      return "/signup"; // This is the redirection URL for users who haven't signed up
+    },
+
+    async jwt({ token, user }) {
       if (user) {
-        // Check if the user already exists in Supabase
-        const { data: existingUser, error } = await supabaseAuth
-          .from('profiles')
-          .select('id')
-          .eq('email', user.email)
+        // Try to load user ID from profiles
+        const { data: existingUser, error } = await supabaseServer
+          .from("profiles")
+          .select("id")
+          .eq("email", user.email)
           .single();
 
-        if (existingUser) {
-          // Use the existing user_id
-          token.id = existingUser.id;
-        } else {
-          // Use the new user_id from the current login
-          token.id = user.id;
-        }
+        token.id = existingUser?.id ?? user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
+
     async session({ session, token }) {
-      // Attach token properties to the session
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email;

@@ -17,10 +17,16 @@ export default function Navbar() {
           {session ? (
             <>
               <Link
+                href="/dashboard/profile"
+                className="text-white hover:text-gray-200 transition"
+              >
+                Profile
+              </Link>
+              <Link
                 href="/dashboard"
                 className="text-white hover:text-gray-200 transition"
               >
-                Dashboard
+                Progress Dashboard
               </Link>
               <Link
                 href="/practice"

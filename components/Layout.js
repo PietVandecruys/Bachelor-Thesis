@@ -1,4 +1,5 @@
 // components/Layout.js
+import Link from 'next/link';
 import Navbar from './Navbar';
 
 export default function Layout({ children }) {
@@ -20,9 +21,13 @@ export default function Layout({ children }) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-700 text-white">
-        <div className="container mx-auto px-4 py-4 text-center">
-          © {new Date().getFullYear()} CFA Exam Prep. All rights reserved.
+      <footer className="bg-gray-800 text-white mt-12">
+        <div className="container mx-auto px-4 py-6 text-center text-sm">
+          <p>© {new Date().getFullYear()} CFA Exam Prep. All rights reserved.</p>
+          <p className="mt-2">
+            <Link href="/" className="underline hover:text-blue-800 mx-2">Privacy</Link> |
+            <Link href="/" className="underline hover:text-blue-800 mx-2">Terms</Link>
+          </p>
         </div>
       </footer>
     </div>
