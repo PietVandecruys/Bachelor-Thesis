@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
@@ -26,6 +26,14 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
   const [testSessionId, setTestSessionId] = useState(null);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Timer state
+  const [startTime, setStartTime] = useState(null);
+
+  // Set the start time when the component mounts
+  useEffect(() => {
+    setStartTime(Date.now());
+  }, []);
 
   if (status === 'loading') {
     return <Layout><p>Loading session...</p></Layout>;
@@ -57,7 +65,7 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
   const question = questions[currentIndex];
   const totalQuestions = questions.length;
   const questionNumber = currentIndex + 1;
-  console.log("Session object:", session);
+
   // Start test session and associate it with the logged-in user's user_id
   const startTestSession = async () => {
     if (!session?.user) return null;
@@ -68,8 +76,6 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
       start_time: new Date(),
       question_count: totalQuestions,
     };
-
-    console.log("Starting test session with data:", testSessionData);
 
     const { data, error } = await supabaseModules
       .from('test_sessions')
@@ -85,7 +91,6 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
     setTestSessionId(data.id);
     return data.id;
   };
-
 
   const handleSelectAnswer = (answer) => {
     if (!isSubmitted) {
@@ -112,12 +117,10 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
       if (!sessionId) return;
     }
 
-    console.log("📝 Submitting answer for session:", sessionId);
-
-    const { error: answerError } = await supabaseModules.from('test_answers').insert([
+    await supabaseModules.from('test_answers').insert([
       {
         test_session_id: sessionId,
-        user_id: session.user.id, // Again, associate the logged-in user's user_id
+        user_id: session.user.id,
         question_id: question.id,
         selected_answer: selectedAnswer,
         is_correct: isCorrect,
@@ -125,24 +128,25 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
       },
     ]);
 
-    if (answerError) {
-      console.error("❌ Failed to insert test answer:", answerError);
-    }
-
+    // If last question, finish test session & update with time_spent
     if (currentIndex === totalQuestions - 1) {
-      console.log("🏁 Final question reached. Updating session:", sessionId);
-      const finalScore = Math.round(((correctAnswers + (isCorrect ? 1 : 0)) / totalQuestions) * 100);
+      const finalScore = Math.round(
+        ((correctAnswers + (isCorrect ? 1 : 0)) / totalQuestions) * 100
+      );
+      const endTime = Date.now();
+      const timeSpent = Math.round((endTime - startTime) / 1000); // seconds
 
       const { error: updateError } = await supabaseModules
         .from('test_sessions')
         .update({
           end_time: new Date(),
           score: finalScore,
+          time_spent: timeSpent,
         })
         .eq('id', sessionId);
 
       if (updateError) {
-        console.error("❌ Failed to update test session:", updateError);
+        console.error('❌ Failed to update test session:', updateError);
       } else {
         setIsRedirecting(true);
         setTimeout(() => {
@@ -243,6 +247,7 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
   );
 }
 
+// Server-side: fetch module & questions
 export async function getServerSideProps(context) {
   const { slug } = context.params;
   const moduleName = deslugify(slug);

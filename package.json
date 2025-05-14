@@ -10,6 +10,8 @@
     "@auth/supabase-adapter": "^1.9.1",
     "@supabase/supabase-js": "^2.49.4",
     "chart.js": "^4.4.9",
+    "dayjs": "^1.11.13",
+    "lucide-react": "^0.510.0",
     "next": "^15.2.0",
     "next-auth": "^4.24.7",
     "react": "18.x",
