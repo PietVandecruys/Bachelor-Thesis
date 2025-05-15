@@ -42,7 +42,7 @@ export default function NavbarExamCountdown({ userId }) {
 
   return (
     <span className="text-white font-semibold tracking-wide">
-      Next Exam: <span className="text-white ml-1">{daysLeft} day{daysLeft === 1 ? "" : "s"}</span>
+      Your Next Exam: <span className="text-white ml-1">{daysLeft} day{daysLeft === 1 ? "" : "s"}</span>
     </span>
   );
 }

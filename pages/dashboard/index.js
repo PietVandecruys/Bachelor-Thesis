@@ -4,6 +4,8 @@ import Layout from '../../components/Layout';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Line } from 'react-chartjs-2';
+import ModuleProgressSection from '../../components/dashboard/ModuleProgress';
+import StudyStreakMilestoneSection from '../../components/dashboard/StudyStreakMilestone';
 
 import {
   Chart as ChartJS,
@@ -64,18 +66,6 @@ export default function DashboardPage({ testHistory, userName }) {
     );
   }
 
-  const deleteTest = async (testId) => {
-    if (window.confirm('Are you sure you want to delete this test?')) {
-      await supabaseModules.from('test_answers').delete().eq('test_session_id', testId);
-      await supabaseModules.from('test_sessions').delete().eq('id', testId);
-      setTests(tests.filter((test) => test.id !== testId));
-    }
-  };
-
-  const toggleTestDetails = (testId) => {
-    setExpandedTest(expandedTest === testId ? null : testId);
-  };
-
   const startNewTest = () => {
     router.push('/practice');
   };
@@ -98,44 +88,43 @@ export default function DashboardPage({ testHistory, userName }) {
   });
 
   const performanceData = {
-  labels: allDates,
-  datasets: Object.entries(moduleScores).map(([module, scoreMap], index) => ({
-    label: module,
-    data: allDates.map(date => scoreMap[date] ?? null),
-    spanGaps: true,
-    borderColor: colorPalette[index % colorPalette.length],
-    backgroundColor: 'transparent',
-    fill: false,
-  }))
-};
+    labels: allDates,
+    datasets: Object.entries(moduleScores).map(([module, scoreMap], index) => ({
+      label: module,
+      data: allDates.map(date => scoreMap[date] ?? null),
+      spanGaps: true,
+      borderColor: colorPalette[index % colorPalette.length],
+      backgroundColor: 'transparent',
+      fill: false,
+    }))
+  };
 
-const performanceOptions = {
-  responsive: true,
-  plugins: {
-    tooltip: {
-      callbacks: {
-        label: context => `${context.parsed.y}%`,
+  const performanceOptions = {
+    responsive: true,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: context => `${context.parsed.y}%`,
+        },
+      },
+      legend: {
+        position: 'top',
       },
     },
-    legend: {
-      position: 'top',
-    },
-  },
-  scales: {
-    y: {
-      min: 0,
-      max: 100,
-      ticks: {
-        callback: value => `${value}%`
-      },
-      title: {
-        display: true,
-        text: 'Score (%)'
+    scales: {
+      y: {
+        min: 0,
+        max: 100,
+        ticks: {
+          callback: value => `${value}%`
+        },
+        title: {
+          display: true,
+          text: 'Score (%)'
+        }
       }
     }
-  }
-};
-
+  };
 
   return (
     <Layout>
@@ -176,6 +165,10 @@ const performanceOptions = {
           Start a New Test
         </button>
       </div>
+      {/* Study Streak and Milestone section */}
+      <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
+        <StudyStreakMilestoneSection />
+      </div>
 
       {/* Chart Section */}
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
@@ -183,62 +176,8 @@ const performanceOptions = {
         <Line data={performanceData} options={performanceOptions} />
       </div>
 
-      {/* Test History */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-2xl font-semibold text-gray-700 mb-4">Test History</h3>
-        <div className="divide-y">
-          {tests.map((test) => (
-            <div key={test.id} className="py-4">
-              <div
-                className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
-                onClick={() => toggleTestDetails(test.id)}
-              >
-                <span className="text-lg font-semibold text-gray-800">
-                  {test.module_name}{' '}
-                  <span className="text-gray-500 text-sm">
-                    ({new Date(test.start_time).toLocaleDateString()})
-                  </span>
-                </span>
-                <span className="text-gray-500">{expandedTest === test.id ? '▲' : '▼'}</span>
-              </div>
-
-              {expandedTest === test.id && (
-                <div className="mt-3 bg-gray-50 p-4 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">
-                      <strong>Score:</strong>{' '}
-                      <span
-                        className={`ml-2 font-semibold ${
-                          test.score < 50
-                            ? 'text-red-600'
-                            : test.score < 75
-                            ? 'text-yellow-500'
-                            : 'text-green-600'
-                        }`}
-                      >
-                        {test.score}%
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      <strong>Correct Answers:</strong> {test.correct_answers}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      <strong>Time Spent:</strong> {test.time_spent}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => deleteTest(test.id)}
-                    className="text-red-500 hover:text-red-700 transition"
-                    title="Delete Test"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Module Progress Section */}
+      <ModuleProgressSection />
     </Layout>
   );
 }

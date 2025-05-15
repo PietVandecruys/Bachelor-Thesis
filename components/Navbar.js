@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
+import NavbarExamCountdown from './NavbarExamCountdown';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -10,9 +11,12 @@ export default function Navbar() {
     <nav className="bg-gray-700 sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Brand / Home Link */}
-        <Link href="/" className="text-white text-lg font-semibold hover:text-gray-200 transition">
-          Home
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-white text-lg font-semibold hover:text-gray-200 transition">
+            Home
+          </Link>
+          {session?.user?.id && <NavbarExamCountdown userId={session.user.id} />}
+        </div>
 
         {/* Hamburger Icon (only on mobile) */}
         <button
