@@ -40,9 +40,22 @@ export default function NavbarExamCountdown({ userId }) {
   // Don't render if no exam date is set
   if (!examDate || daysLeft == null) return null;
 
+  // Don't render if exam is today or overdue
+  if (daysLeft < 0) return null;
+
+  let countdownLabel = "";
+  if (daysLeft === 0) {
+    countdownLabel = "tomorrow";
+  } else if (daysLeft === 1) {
+    countdownLabel = "1 day";
+  } else {
+    countdownLabel = `${daysLeft} days`;
+  }
+
+
   return (
     <span className="text-white font-semibold tracking-wide">
-      Your Next Exam: <span className="text-white ml-1">{daysLeft} day{daysLeft === 1 ? "" : "s"}</span>
+      Your Next Exam: <span className="text-white ml-1">{countdownLabel}</span>
     </span>
   );
 }
