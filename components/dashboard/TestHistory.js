@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { supabaseModules } from "../../lib/supabaseClient.js";
 import { Trash2 } from "lucide-react";
-                
 
 export default function TestHistory() {
   const { data: session, status } = useSession();
   const [tests, setTests] = useState([]);
   const [expandedTest, setExpandedTest] = useState(null);
+  const [testDetails, setTestDetails] = useState({});
+  const [loadingDetails, setLoadingDetails] = useState(null);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -56,8 +57,31 @@ export default function TestHistory() {
     fetchTests();
   }, [session?.user?.id]);
 
-  const toggleTestDetails = (testId) =>
-    setExpandedTest(expandedTest === testId ? null : testId);
+  // Fetch details for a test
+  const fetchTestDetails = async (testId) => {
+    setLoadingDetails(testId);
+    const { data: answers } = await supabaseModules
+      .from("test_answers")
+      .select(`
+        id, selected_answer, is_correct,
+        questions (
+          question_text, answer_a, answer_b, answer_c, correct_answer, explanation
+        )
+      `)
+      .eq("test_session_id", testId)
+      .order("id", { ascending: true });
+    setTestDetails((prev) => ({ ...prev, [testId]: answers || [] }));
+    setLoadingDetails(null);
+  };
+
+  const toggleTestDetails = (testId) => {
+    if (expandedTest === testId) {
+      setExpandedTest(null);
+    } else {
+      setExpandedTest(testId);
+      if (!testDetails[testId]) fetchTestDetails(testId);
+    }
+  };
 
   const deleteTest = async (testId) => {
     if (window.confirm("Are you sure you want to delete this test?")) {
@@ -77,22 +101,36 @@ export default function TestHistory() {
         {tests.length === 0 && <div className="text-gray-400 py-4">No test sessions found.</div>}
         {tests.map((test) => (
           <div key={test.id} className="py-4">
-            <div
-              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition"
-              onClick={() => toggleTestDetails(test.id)}
-            >
-              <span className="text-lg font-semibold text-gray-800">
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition">
+              <span
+                className="text-lg font-semibold text-gray-800"
+                onClick={() => toggleTestDetails(test.id)}
+              >
                 {test.module_name}{" "}
                 <span className="text-gray-500 text-sm">
                   ({new Date(test.start_time).toLocaleDateString()})
                 </span>
               </span>
-              <span className="text-gray-500">{expandedTest === test.id ? "▲" : "▼"}</span>
+              <div className="flex items-center gap-3">
+                <button
+                  className="px-3 py-1 text-sm rounded bg-blue-100 hover:bg-blue-200 text-blue-700"
+                  onClick={() => toggleTestDetails(test.id)}
+                >
+                  {expandedTest === test.id ? "Hide details" : "Details"}
+                </button>
+                <button
+                  onClick={() => deleteTest(test.id)}
+                  className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                  title="Delete Test"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {expandedTest === test.id && (
-              <div className="mt-3 bg-gray-50 p-4 rounded-lg flex justify-between items-center">
-                <div>
+              <div className="mt-3 bg-gray-50 p-4 rounded-lg">
+                <div className="mb-2">
                   <p className="text-sm text-gray-600">
                     <strong>Score:</strong>{" "}
                     <span
@@ -108,21 +146,45 @@ export default function TestHistory() {
                     </span>
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Correct Answers:</strong> {test.correct_answers}
+                    <strong>Correct answers:</strong> {test.correct_answers}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Time Spent:</strong> {test.time_spent}
+                    <strong>Time spent:</strong> {test.time_spent}
                   </p>
                 </div>
-
-                <button
-                onClick={() => deleteTest(test.id)}
-                className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-                title="Delete Test"
-                >
-                <Trash2 className="w-5 h-5" />
-                </button>
-
+                {loadingDetails === test.id ? (
+                  <div className="text-gray-400">Loading questions…</div>
+                ) : (
+                  <div className="space-y-4">
+                    {(testDetails[test.id] || []).map((ans, idx) => (
+                      <div key={ans.id} className="p-3 rounded bg-white shadow-sm">
+                        <div className="font-semibold text-gray-800">
+                          Question {idx + 1}: {ans.questions?.question_text}
+                        </div>
+                        <div className="text-sm mt-1">
+                          <strong>Your answer:</strong>{" "}
+                          <span className={ans.is_correct ? "text-green-600" : "text-red-600"}>
+                            {ans.selected_answer}
+                          </span>
+                        </div>
+                        <div className="text-sm">
+                          <strong>Correct answer:</strong> {ans.questions?.correct_answer}
+                        </div>
+                        {ans.is_correct === false && (
+                          <div className="text-xs text-gray-600">
+                            <strong>Explanation:</strong> {ans.questions?.explanation}
+                          </div>
+                        )}
+                        {/* Optionally show choices */}
+                        <div className="text-xs mt-2 text-gray-500 flex gap-2">
+                          <span>A) {ans.questions?.answer_a}</span>
+                          <span>B) {ans.questions?.answer_b}</span>
+                          <span>C) {ans.questions?.answer_c}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
