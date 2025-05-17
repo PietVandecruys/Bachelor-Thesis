@@ -1,15 +1,12 @@
-// pages/dashboard/index.js
-
-import { useSession, signIn } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useSession, signIn, getSession } from 'next-auth/react';
+import { createClient } from '@supabase/supabase-js';
 import Layout from '../../components/Layout';
-import { supabaseModules, supabaseAuth } from '../../lib/supabaseClient';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { Line } from 'react-chartjs-2';
 import ModuleProgressSection from '../../components/dashboard/ModuleProgress';
 import StudyStreakMilestoneSection from '../../components/dashboard/StudyStreakMilestone';
 
-// Chart.js setup
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,91 +20,30 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function DashboardPage() {
+const supabaseModules = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL_MODULES || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_MODULES || ''
+);
+
+export default function DashboardPage({ testHistory, userName }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [testHistory, setTestHistory] = useState([]);
-  const [userName, setUserName] = useState(null);
-  const [loading, setLoading] = useState(true);
-
+  const [tests, setTests] = useState(testHistory);
   const [averageScore, setAverageScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [lastTest, setLastTest] = useState(null);
 
   useEffect(() => {
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-    async function fetchData() {
-      // Fetch user data
-      const { data: user, error: userError } = await supabaseAuth
-        .from('profiles')
-        .select('id, full_name')
-        .eq('email', session.user.email)
-        .single();
-
-      if (!user || userError) {
-        setUserName('User');
-        setTestHistory([]);
-        setLoading(false);
-        return;
-      }
-      setUserName(user.full_name || 'User');
-
-      // Fetch test sessions
-      const { data: testSessions, error: testError } = await supabaseModules
-        .from('test_sessions')
-        .select('id, score, start_time, time_spent, question_count, modules(module_name)')
-        .eq('user_id', user.id)
-        .order('start_time', { ascending: false });
-
-      if (testError) {
-        setTestHistory([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch correct answers for each test session
-      const testHistoryWithAnswers = await Promise.all(
-        (testSessions || []).map(async (test) => {
-          const { data: correctAnswers } = await supabaseModules
-            .from('test_answers')
-            .select('id')
-            .eq('test_session_id', test.id)
-            .eq('is_correct', true);
-
-          const formattedTime = test.time_spent
-            ? `${Math.floor(test.time_spent / 60)} min ${test.time_spent % 60} sec`
-            : 'N/A';
-
-          return {
-            id: test.id,
-            module_name: test.modules?.module_name || 'Unknown Module',
-            score: test.score,
-            correct_answers: `${correctAnswers ? correctAnswers.length : 0} out of ${test.question_count || '?'}`,
-            time_spent: formattedTime,
-            start_time: test.start_time,
-          };
-        })
-      );
-      setTestHistory(testHistoryWithAnswers);
-      setLoading(false);
-    }
-    fetchData();
-  }, [session]);
-
-  useEffect(() => {
-    if (testHistory.length > 0) {
-      const scores = testHistory.map((test) => test.score);
+    if (tests.length > 0) {
+      const scores = tests.map((test) => test.score);
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
       setAverageScore(Math.round(avg));
       setBestScore(Math.max(...scores));
-      setLastTest(testHistory[0]);
+      setLastTest(tests[0]);
     }
-  }, [testHistory]);
+  }, [tests]);
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <Layout>
         <p>Loading...</p>
@@ -133,10 +69,10 @@ export default function DashboardPage() {
     router.push('/practice');
   };
 
-  // --------- Chart data ---------
-  // Verzamel alle modules en scores per module
+  // -------- Nieuw: x-as op basis van max aantal testen van 1 module --------
+  // Verzamel alle modules en per module alle scores op volgorde van maken (oud -> nieuw)
   const moduleScoresMap = {};
-  testHistory
+  tests
     .slice()
     .reverse()
     .forEach((test) => {
@@ -148,23 +84,29 @@ export default function DashboardPage() {
       });
     });
 
-  const maxTests = Math.max(
-    ...Object.values(moduleScoresMap).map((scores) => scores.length),
-    0
-  );
+  // Bepaal het maximale aantal testen dat 1 module heeft
+  const maxTests = Math.max(...Object.values(moduleScoresMap).map(scores => scores.length));
+  // Labels voor de x-as
   const allTestLabels = Array.from({ length: maxTests }, (_, i) => `Test ${i + 1}`);
+
+  // Stel per module een array samen van lengte maxTests (voor het vullen met nulls waar geen test)
   const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
   const allModules = Object.keys(moduleScoresMap);
 
+  // Per module: vul aan met nulls
   const moduleScores = {};
-  allModules.forEach((module) => {
-    const scores = moduleScoresMap[module].map((item) => item.score);
+  allModules.forEach(module => {
+    const scores = moduleScoresMap[module].map(item => item.score);
+    // Vul aan tot maxTests
     while (scores.length < maxTests) {
       scores.push(null);
     }
     moduleScores[module] = scores;
   });
 
+  // Voor tooltip: maak een lijst met tests van de meest geteste module
+  // (zodat je een tijdstip bij elk testnummer hebt voor de tooltip)
+  // Of: toon alleen testnummer in tooltip
   const performanceData = {
     labels: allTestLabels,
     datasets: allModules.map((module, index) => ({
@@ -220,14 +162,12 @@ export default function DashboardPage() {
       {/* Overview Section */}
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">Dashboard</h2>
-        <p className="mb-6 text-gray-700">
-          Welcome, {userName}! Here’s your CFA study progress.
-        </p>
+        <p className="mb-6 text-gray-700">Welcome, {userName}! Here’s your CFA study progress.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
           <div className="p-4 border rounded-lg shadow">
             <p className="text-gray-600">Total Tests</p>
-            <p className="text-xl font-semibold">{testHistory.length}</p>
+            <p className="text-xl font-semibold">{tests.length}</p>
           </div>
           <div className="p-4 border rounded-lg shadow">
             <p className="text-gray-600">Avg. Score</p>
@@ -260,15 +200,83 @@ export default function DashboardPage() {
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
         <StudyStreakMilestoneSection />
       </div>
+
       {/* Chart Section */}
       <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
-        <h3 className="text-2xl font-semibold text-gray-700 mb-4">
-          Performance Analytics
-        </h3>
+        <h3 className="text-2xl font-semibold text-gray-700 mb-4">Performance Analytics</h3>
         <Line data={performanceData} options={performanceOptions} />
       </div>
+
       {/* Module Progress Section */}
       <ModuleProgressSection />
     </Layout>
   );
+}
+
+export async function getServerSideProps(context) {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/signin',
+        permanent: false,
+      },
+    };
+  }
+
+  const supabaseAuth = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL_USER,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_USER
+  );
+
+  const { data: user, error: userError } = await supabaseAuth
+    .from('profiles')
+    .select('id, full_name')
+    .eq('email', session.user.email)
+    .single();
+
+  if (userError || !user) {
+    console.error('User not found in Supabase:', userError);
+    return { props: { testHistory: [], userName: null } };
+  }
+
+  const userId = user.id;
+  const userName = user.full_name || 'User';
+
+  const { data: testSessions, error: testError } = await supabaseModules
+    .from('test_sessions')
+    .select('id, score, start_time, time_spent, question_count, modules(module_name)')
+    .eq('user_id', userId)
+    .order('start_time', { ascending: false });
+
+  if (testError) {
+    console.error('Supabase Error:', testError);
+    return { props: { testHistory: [], userName } };
+  }
+
+  const testHistory = await Promise.all(
+    testSessions.map(async (test) => {
+      const { data: correctAnswers } = await supabaseModules
+        .from('test_answers')
+        .select('id')
+        .eq('test_session_id', test.id)
+        .eq('is_correct', true);
+
+      const formattedTime = test.time_spent
+        ? `${Math.floor(test.time_spent / 60)} min ${test.time_spent % 60} sec`
+        : 'N/A';
+
+      return {
+        id: test.id,
+        module_name: test.modules?.module_name || 'Unknown Module',
+        score: test.score,
+        correct_answers: `${correctAnswers ? correctAnswers.length : 0} out of ${test.question_count || '?'}`,
+        time_spent: formattedTime,
+        start_time: test.start_time,
+      };
+    })
+  );
+
+  return { props: { testHistory, userName } };
 }
