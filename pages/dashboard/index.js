@@ -29,7 +29,6 @@ export default function DashboardPage({ testHistory, userName }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [tests, setTests] = useState(testHistory);
-  const [expandedTest, setExpandedTest] = useState(null);
   const [averageScore, setAverageScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [lastTest, setLastTest] = useState(null);
@@ -70,33 +69,54 @@ export default function DashboardPage({ testHistory, userName }) {
     router.push('/practice');
   };
 
-  // 📊 Group by module and prepare chart data
-  const moduleScores = {};
-  const allDates = [...new Set(
-    tests
-      .map(test => new Date(test.start_time))
-      .sort((a, b) => a - b) // ascending
-      .map(date => date.toLocaleDateString())
-  )];
-  const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  // -------- Nieuw: x-as op basis van max aantal testen van 1 module --------
+  // Verzamel alle modules en per module alle scores op volgorde van maken (oud -> nieuw)
+  const moduleScoresMap = {};
+  tests
+    .slice()
+    .reverse()
+    .forEach((test) => {
+      const module = test.module_name || 'Unknown Module';
+      if (!moduleScoresMap[module]) moduleScoresMap[module] = [];
+      moduleScoresMap[module].push({
+        score: test.score,
+        start_time: test.start_time,
+      });
+    });
 
-  tests.forEach(test => {
-    const module = test.module_name || 'Unknown Module';
-    const date = new Date(test.start_time).toLocaleDateString();
-    if (!moduleScores[module]) moduleScores[module] = {};
-    moduleScores[module][date] = test.score;
+  // Bepaal het maximale aantal testen dat 1 module heeft
+  const maxTests = Math.max(...Object.values(moduleScoresMap).map(scores => scores.length));
+  // Labels voor de x-as
+  const allTestLabels = Array.from({ length: maxTests }, (_, i) => `Test ${i + 1}`);
+
+  // Stel per module een array samen van lengte maxTests (voor het vullen met nulls waar geen test)
+  const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const allModules = Object.keys(moduleScoresMap);
+
+  // Per module: vul aan met nulls
+  const moduleScores = {};
+  allModules.forEach(module => {
+    const scores = moduleScoresMap[module].map(item => item.score);
+    // Vul aan tot maxTests
+    while (scores.length < maxTests) {
+      scores.push(null);
+    }
+    moduleScores[module] = scores;
   });
 
+  // Voor tooltip: maak een lijst met tests van de meest geteste module
+  // (zodat je een tijdstip bij elk testnummer hebt voor de tooltip)
+  // Of: toon alleen testnummer in tooltip
   const performanceData = {
-    labels: allDates,
-    datasets: Object.entries(moduleScores).map(([module, scoreMap], index) => ({
+    labels: allTestLabels,
+    datasets: allModules.map((module, index) => ({
       label: module,
-      data: allDates.map(date => scoreMap[date] ?? null),
+      data: moduleScores[module],
       spanGaps: true,
       borderColor: colorPalette[index % colorPalette.length],
       backgroundColor: 'transparent',
       fill: false,
-    }))
+    })),
   };
 
   const performanceOptions = {
@@ -104,7 +124,12 @@ export default function DashboardPage({ testHistory, userName }) {
     plugins: {
       tooltip: {
         callbacks: {
-          label: context => `${context.parsed.y}%`,
+          label: (context) => {
+            const yVal = context.parsed.y;
+            return yVal !== null
+              ? `${context.dataset.label}: ${yVal}%`
+              : `${context.dataset.label}: geen test`;
+          },
         },
       },
       legend: {
@@ -112,18 +137,24 @@ export default function DashboardPage({ testHistory, userName }) {
       },
     },
     scales: {
+      x: {
+        title: {
+          display: true,
+          text: `Number of Tests`,
+        },
+      },
       y: {
         min: 0,
         max: 100,
         ticks: {
-          callback: value => `${value}%`
+          callback: (value) => `${value}%`,
         },
         title: {
           display: true,
-          text: 'Score (%)'
-        }
-      }
-    }
+          text: 'Score (%)',
+        },
+      },
+    },
   };
 
   return (

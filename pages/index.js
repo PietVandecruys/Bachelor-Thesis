@@ -10,12 +10,13 @@ function slugify(name) {
   return name.toLowerCase().replace(/\s+/g, '-');
 }
 function getRecommendedModules(modules) {
-  return modules.slice(0, 3);
+  return modules.slice(0, 4);
 }
 function getModuleImage(name) {
   if (name === 'Statistics') return '/images/statistics.jpg';
   if (name === 'Probability Concepts') return '/images/probability.jpg';
   if (name === 'Portfolio Management') return '/images/pm.jpg';
+  if (name === 'Ethics And Trust') return '/images/EthicsAndTrust.jpg';
   return '/images/default.jpg';
 }
 
@@ -57,7 +58,7 @@ export default function Home({ modules }) {
               alt="CFA Exam Preparation"
               width={600}
               height={340}
-              className="rounded-xl shadow-2xl border"
+              className="rounded-xl shadow-2xl border-2 border-gray-200"
               priority
             />
           </div>
@@ -149,7 +150,7 @@ export default function Home({ modules }) {
       {session ? (
         <section className="py-20 bg-gradient-to-br from-blue-50 via-blue-100 to-white px-4">
           <h2 className="text-4xl font-bold text-center text-gray-800 mb-12">Recommended Modules</h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
             {getRecommendedModules(modules).length ? (
               getRecommendedModules(modules).map((mod) => (
                 <div key={mod.id} className="bg-white border rounded-xl shadow-lg p-4 flex flex-col items-center text-center hover:shadow-xl hover:scale-105 transition">

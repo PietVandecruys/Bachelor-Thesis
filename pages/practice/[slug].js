@@ -251,12 +251,15 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
 export async function getServerSideProps(context) {
   const { slug } = context.params;
   const moduleName = deslugify(slug);
+  console.log('Slug:', slug);
+  console.log('ModuleName:', moduleName);
 
   const { data: moduleData, error: moduleError } = await supabaseModules
     .from('modules')
     .select('id')
     .eq('module_name', moduleName)
     .single();
+  console.log('ModuleData:', moduleData, 'ModuleError:', moduleError);
 
   if (moduleError || !moduleData) {
     return { props: { moduleName, questions: [] } };
@@ -266,8 +269,10 @@ export async function getServerSideProps(context) {
     .from('questions')
     .select('*')
     .eq('module_id', moduleData.id);
+  console.log('Questions:', questions, 'QuestionsError:', questionsError);
 
   return {
     props: { moduleName, questions: questions || [] },
   };
 }
+
