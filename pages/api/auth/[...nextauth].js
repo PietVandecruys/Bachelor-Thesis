@@ -37,7 +37,7 @@ export default NextAuth({
 
         if (error || !data?.user) {
           console.error("Supabase sign-in failed:", error);
-          throw new Error("Please sign up first");  // Custom error message
+          throw new Error("Email or password is incorrect.");
         }
 
         return {
@@ -61,7 +61,7 @@ export default NextAuth({
 
   pages: {
     signIn: "/signin",
-    error: "/signup",  // Redirect to the sign-up page on error
+    error: "/signin", // Toon errors op je signin page, niet signup!
   },
 
   session: {
@@ -83,7 +83,7 @@ export default NextAuth({
       if (data) return true; // user exists, allow sign-in
 
       console.warn("Blocked OAuth sign-in — user not found in Supabase:", user?.email);
-      
+
       // Redirect to sign-up page
       return "/signup"; // This is the redirection URL for users who haven't signed up
     },
