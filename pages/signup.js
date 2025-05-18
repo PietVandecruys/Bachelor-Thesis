@@ -1,44 +1,44 @@
-import { useState } from 'react';
-import Layout from '../components/Layout';
-import { supabaseAuth } from '../lib/supabaseClient';
-import Link from 'next/link';
+// pages/signup.tsx
+
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import axios from "axios";
+import Layout from "../components/Layout";
+import Link from "next/link";
 
 export default function Signup() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState(''); // Field for full name
-  const [message, setMessage] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    
-    // Register user with Supabase authentication
-    const { data, error } = await supabaseAuth.auth.signUp({
-      email,
-      password,
-    });
+    setMessage("");
+    setLoading(true);
 
-    if (error) {
-      setMessage('Error: ' + error.message);
-    } else {
-      // Add user name and other details to the 'profiles' table
-      const { error: profileError } = await supabaseAuth
-        .from('profiles')
-        .upsert({
-          id: data.user.id, // User ID from auth table
-          full_name: fullName, // Full name
-          email: email,
-          avatar_url: null, // Default avatar URL
-        });
+    try {
+      // 1. Register the user
+      await axios.post("/api/auth/register", { email, password, fullName });
 
-      if (profileError) {
-        setMessage('Error while saving profile: ' + profileError.message);
-      } else {
-        setMessage('User successfully registered!');
-        setEmail('');
-        setPassword('');
-        setFullName(''); // Reset the full name field after registration
+      // 2. Immediately sign in the user
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: true,         // You can set to false and manually redirect if you prefer
+        callbackUrl: "/",       // Change if you want another post-signup page
+      });
+
+      if (result?.error) {
+        setMessage(result.error);
       }
+    } catch (err) {
+      setMessage(
+        err?.response?.data?.error || "Could not register. Try a different email."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,8 +46,9 @@ export default function Signup() {
     <Layout>
       <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
-        <p className="text-sm text-gray-600 mb-4">
-            It seems you were trying to log in, but don't have an account yet. Please fill in the details below to sign up and continue.        </p>
+        <p className="text-sm text-gray-600 mb-4 text-center">
+          Please fill in the details below to sign up and continue.
+        </p>
         <form onSubmit={handleSignup}>
           <input
             type="text"
@@ -75,14 +76,15 @@ export default function Signup() {
           />
           <button
             type="submit"
+            disabled={loading}
             className="bg-[#002D74] text-white border py-2 w-full rounded-xl flex justify-center items-center hover:scale-105 duration-300"
           >
-            Sign Up
+            {loading ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
-        {message && <p className="mt-4 text-center text-gray-700">{message}</p>}
+        {message && <p className="mt-4 text-center text-red-600">{message}</p>}
         <p className="mt-4 text-center">
-          Already have an account?{' '}
+          Already have an account?{" "}
           <Link href="/signin" className="text-blue-600 hover:underline">
             Sign In
           </Link>
