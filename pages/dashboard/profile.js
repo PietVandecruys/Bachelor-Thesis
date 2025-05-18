@@ -4,6 +4,8 @@ import { supabaseAuth, supabaseModules } from "../../lib/supabaseClient.js";
 import Layout from "../../components/Layout.js";
 import { Calendar as CalendarIcon, Edit2, Save } from "lucide-react";
 import TestHistory from "../../components/dashboard/TestHistory.js";
+import { Star, CheckCircle2 } from "lucide-react";
+
 
 export default function DashboardProfile() {
   const { data: session, status } = useSession();
@@ -19,10 +21,15 @@ export default function DashboardProfile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Platform Feedback State
+  const [newPlatformReview, setNewPlatformReview] = useState({ rating: 5, comment: "" });
+  const [submittingPlatformReview, setSubmittingPlatformReview] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
   useEffect(() => {
     if (status !== "authenticated" || !session?.user?.id) return;
     (async () => {
-      // Fetch profile including difficulty and cfa_level
+      // Fetch profile
       const { data: prof } = await supabaseAuth
         .from("profiles")
         .select("full_name, email, preferences, next_exam_date, difficulty, cfa_level")
@@ -46,6 +53,7 @@ export default function DashboardProfile() {
           cfa_level: prof.cfa_level || "",
         }));
 
+      // Fetch modules
       const { data: allModules } = await supabaseModules
         .from("modules")
         .select("id, module_name")
@@ -68,6 +76,24 @@ export default function DashboardProfile() {
       .eq("id", session.user.id);
     if (!error) setEditing(false);
     setSaving(false);
+  };
+
+  // Handle platform review submit
+  const handlePlatformReviewSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingPlatformReview(true);
+    await supabaseAuth
+      .from("platform_reviews")
+      .insert([{
+        user_id: session.user.id,
+        user_name: profile.full_name,
+        rating: newPlatformReview.rating,
+        comment: newPlatformReview.comment,
+      }]);
+    setSubmittingPlatformReview(false);
+    setFeedbackSent(true);
+    setNewPlatformReview({ rating: 5, comment: "" });
+    setTimeout(() => setFeedbackSent(false), 4000);
   };
 
   if (status === "loading") return <Layout>Loading…</Layout>;
@@ -232,6 +258,91 @@ export default function DashboardProfile() {
         <div>
           <TestHistory />
         </div>
+        {/* PLATFORM FEEDBACK SECTION */}
+        <div className="shadow rounded-2xl p-8 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Star className="w-7 h-7 text-blue-500" />
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Help Us Improve
+            </h2>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Share your feedback or suggestions to make our platform better!
+          </p>
+            <form onSubmit={handlePlatformReviewSubmit} className="mb-2">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm font-medium">Your Rating:</span>
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map((n) => (
+                    <button
+                      type="button"
+                      key={n}
+                      onClick={() => setNewPlatformReview(r => ({ ...r, rating: n }))}
+                      className="focus:outline-none"
+                      tabIndex={-1}
+                    >
+                      <Star
+                        className={`w-7 h-7 transition text-yellow-400 ${n <= newPlatformReview.rating ? "fill-yellow-400" : "fill-none"}`}
+                        strokeWidth={n <= newPlatformReview.rating ? 1.5 : 1}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={newPlatformReview.comment}
+                onChange={e => setNewPlatformReview(r => ({ ...r, comment: e.target.value }))}
+                placeholder="Your feedback, ideas, or anything on your mind…"
+                className="border border-blue-200 rounded-xl w-full p-3 mb-4 text-base focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                rows={4}
+                required
+                maxLength={1000}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submittingPlatformReview}
+                  className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition text-white font-semibold px-6 py-2 rounded-xl shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {submittingPlatformReview ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 018 8h-4l3 3 3-3h-4z"/>
+                      </svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 mr-2" /> Submit Feedback
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          {feedbackSent && (
+            <div
+              className="flex items-center gap-2 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 shadow-sm animate-fade-in"
+              style={{ animation: "fadeInOut 3.5s forwards" }}
+            >
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+              <span className="font-medium">Thank you for helping us improve! 🚀</span>
+            </div>
+          )}
+          <style jsx global>{`
+            @keyframes fadeInOut {
+              0% { opacity: 0; transform: translateY(15px);}
+              10% { opacity: 1; transform: translateY(0);}
+              80% { opacity: 1;}
+              100% { opacity: 0; transform: translateY(-10px);}
+            }
+            .animate-fade-in {
+              animation: fadeInOut 3.5s;
+            }
+          `}</style>
+        </div>
+
       </div>
     </Layout>
   );

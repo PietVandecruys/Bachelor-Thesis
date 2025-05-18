@@ -184,6 +184,18 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
         <div className="bg-gray-100 p-6 rounded-lg shadow-md">
           <p className="text-lg font-medium text-gray-800 mb-4">{question.question_text}</p>
 
+          {/* Afbeelding tonen onder de vraagtekst */}
+          {question.image_url && (
+            <div className="mb-4 flex justify-center">
+              <img
+                src={question.image_url}
+                alt="Afbeelding bij de vraag"
+                className="max-h-64 rounded shadow-md border"
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+          )}
+
           <div className="space-y-3">
             {['A', 'B', 'C'].map((choice) => {
               const choiceText = question[`answer_${choice.toLowerCase()}`];
@@ -251,15 +263,12 @@ export default function TestEnvironmentPage({ moduleName, questions }) {
 export async function getServerSideProps(context) {
   const { slug } = context.params;
   const moduleName = deslugify(slug);
-  console.log('Slug:', slug);
-  console.log('ModuleName:', moduleName);
 
   const { data: moduleData, error: moduleError } = await supabaseModules
     .from('modules')
     .select('id')
     .eq('module_name', moduleName)
     .single();
-  console.log('ModuleData:', moduleData, 'ModuleError:', moduleError);
 
   if (moduleError || !moduleData) {
     return { props: { moduleName, questions: [] } };
@@ -269,10 +278,8 @@ export async function getServerSideProps(context) {
     .from('questions')
     .select('*')
     .eq('module_id', moduleData.id);
-  console.log('Questions:', questions, 'QuestionsError:', questionsError);
 
   return {
     props: { moduleName, questions: questions || [] },
   };
 }
-
