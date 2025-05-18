@@ -50,8 +50,7 @@ export default function Home({ modules }) {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-            Personalized CFA prep. Real-time performance analytics. Exam-level practice—built just for you.
-          </p>
+              Personalized CFA preparation, real-time analytics, and authentic exam practice, all designed for your success.</p>
           <div className="mb-10 animate-fade-in">
             <Image
               src="/images/CFA-Exam-Prep.webp"
