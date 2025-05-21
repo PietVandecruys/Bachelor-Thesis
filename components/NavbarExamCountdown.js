@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabaseAuth } from "../lib/supabaseClient";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+dayjs.extend(utc);
+dayjs.extend(customParseFormat);
 
 export default function NavbarExamCountdown({ userId }) {
   const [examDate, setExamDate] = useState(null);
   const [daysLeft, setDaysLeft] = useState(null);
 
-  // Fetch the user's next_exam_date
   useEffect(() => {
     if (!userId) return;
     (async () => {
@@ -23,35 +26,46 @@ export default function NavbarExamCountdown({ userId }) {
     })();
   }, [userId]);
 
-  // Update countdown
   useEffect(() => {
     if (!examDate) {
       setDaysLeft(null);
       return;
     }
     const update = () => {
-      setDaysLeft(dayjs(examDate).diff(dayjs(), "day"));
+      // Detect format
+      let exam;
+      if (/^\d{2}-\d{2}-\d{4}$/.test(examDate)) {
+        exam = dayjs.utc(examDate, "DD-MM-YYYY");
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(examDate)) {
+        exam = dayjs.utc(examDate, "YYYY-MM-DD");
+      } else {
+        exam = dayjs.utc(examDate);
+      }
+      if (!exam.isValid()) {
+        setDaysLeft(null);
+        return;
+      }
+      // Ignore the hour/minute part!
+      const today = dayjs.utc().startOf("day");
+      const examDay = exam.startOf("day");
+      setDaysLeft(examDay.diff(today, "day"));
     };
     update();
-    const id = setInterval(update, 60 * 60 * 1000); // update every hour
+    const id = setInterval(update, 60 * 60 * 1000);
     return () => clearInterval(id);
   }, [examDate]);
 
-  // Don't render if no exam date is set
   if (!examDate || daysLeft == null) return null;
-
-  // Don't render if exam is today or overdue
   if (daysLeft < 0) return null;
 
   let countdownLabel = "";
   if (daysLeft === 0) {
-    countdownLabel = "tomorrow";
+    countdownLabel = "Today";
   } else if (daysLeft === 1) {
-    countdownLabel = "1 day";
+    countdownLabel = "Tomorrow";
   } else {
     countdownLabel = `${daysLeft} days`;
   }
-
 
   return (
     <span className="text-white font-semibold tracking-wide">
