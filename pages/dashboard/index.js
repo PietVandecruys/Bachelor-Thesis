@@ -134,7 +134,7 @@ export default function DashboardPage() {
   };
 
   // --------- Chart data ---------
-  // Verzamel alle modules en scores per module
+  // Get all modules and scores per module
   const moduleScoresMap = {};
   testHistory
     .slice()

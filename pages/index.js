@@ -50,7 +50,7 @@ export default function Home({ modules }) {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-              Personalized CFA preparation, real-time analytics, and authentic exam practice, all designed for your success.</p>
+              Personalized CFA preparation, real-time analytics and authentic exam practice, all designed for your success.</p>
           <div className="mb-10 animate-fade-in">
             <Image
               src="/images/CFA-Exam-Prep.webp"
@@ -80,7 +80,7 @@ export default function Home({ modules }) {
             <div className="bg-blue-50 rounded-xl p-8 shadow-md text-center hover:scale-105 transition">
               <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3"/>
               <h4 className="text-xl font-semibold text-gray-800 mb-2">Interactive Quizzes</h4>
-              <p className="text-gray-700">Adaptive practice tailored to your strengths—never waste time guessing what to study.</p>
+              <p className="text-gray-700">Adaptive practice tailored to your strengths never waste time guessing what to study.</p>
             </div>
             <div className="bg-blue-50 rounded-xl p-8 shadow-md text-center hover:scale-105 transition">
               <BarChart2 className="w-12 h-12 text-blue-600 mx-auto mb-3"/>
@@ -90,7 +90,7 @@ export default function Home({ modules }) {
             <div className="bg-blue-50 rounded-xl p-8 shadow-md text-center hover:scale-105 transition">
               <BookOpen className="w-12 h-12 text-blue-600 mx-auto mb-3"/>
               <h4 className="text-xl font-semibold text-gray-800 mb-2">Always Up-to-date</h4>
-              <p className="text-gray-700">New content every semester—always prep with the latest exam updates.</p>
+              <p className="text-gray-700">New content every semester always prep with the latest exam updates.</p>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function Home({ modules }) {
             <div className="flex flex-col items-center text-center">
               <ShieldCheck className="w-10 h-10 text-blue-600 mb-2"/>
               <h4 className="font-semibold text-lg mb-2">Sign Up Free</h4>
-              <p className="text-gray-600 text-base">Create your profile in seconds—no payment needed.</p>
+              <p className="text-gray-600 text-base">Create your profile in seconds no payment needed.</p>
             </div>
             <div className="flex flex-col items-center text-center">
               <Clock3 className="w-10 h-10 text-blue-600 mb-2"/>

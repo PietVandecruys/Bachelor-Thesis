@@ -4,13 +4,11 @@ import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
-// 🔐 Public Supabase client (anon key) — for signing in users
 const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL_USER,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_USER
 );
 
-// 🔐 Secure Supabase client (service role key) — for server-side lookups
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL_USER,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -18,7 +16,6 @@ const supabaseServer = createClient(
 
 export default NextAuth({
   providers: [
-    // ✅ Email/Password login
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -48,7 +45,6 @@ export default NextAuth({
       },
     }),
 
-    // ✅ OAuth providers
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -61,7 +57,7 @@ export default NextAuth({
 
   pages: {
     signIn: "/signin",
-    error: "/signin", // Toon errors op je signin page, niet signup!
+    error: "/signin",
   },
 
   session: {

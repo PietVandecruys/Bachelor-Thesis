@@ -13,7 +13,7 @@ export default function ModuleProgressSection() {
     const fetchProgress = async () => {
       setLoading(true);
 
-      // 1. Haal alle test_sessions op
+      // 1. Get all test sessions for the user
       const { data: allSessions } = await supabaseModules
         .from("test_sessions")
         .select("id, module_id, time_spent, question_count, modules(module_name)")
@@ -25,7 +25,7 @@ export default function ModuleProgressSection() {
         return;
       }
 
-      // 2. Haal alle antwoorden voor deze sessies op
+      // 2. Get all answers for the test sessions
       const sessionIds = allSessions.map((s) => s.id);
       const { data: allAnswers } = await supabaseModules
         .from("test_answers")
@@ -56,7 +56,7 @@ export default function ModuleProgressSection() {
         }
       });
 
-      // 4. Maak progress met percentages
+      // 4. Make percentages
       const progressWithPercentages = Object.values(moduleStats).map((mod) => ({
         ...mod,
         percentage:
